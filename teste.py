@@ -1,86 +1,114 @@
-from socket import *
+import socket
+import threading
 import sys
 
-
-def getUserAndPass(request):
-    user_data = request.split('\r\n\r\n')[1]
-    user, password = user_data.split('&')
-    user = user.split('=')[1]
-    password = password.split('=')[1]
-
-    return user, password
-
-
-# (AF_INET é usado para protolocos IPv4)
-# (SOCK_STREAM é usado para TCP)
-serverSocket = socket(AF_INET, SOCK_STREAM)
-
-# Configuração inicial
-port = 6789
-server_ip = '127.0.0.1'
-
 # Configuração de usuário
-dataLogin = {'usuario': 'admin',
-             'senha': '1234'}
+USER_DATA = {'usuario': 'admin', 'senha': '1234'}
 
-print(f"Executando em http://{server_ip}:{port}")
 
-# Prepare um socket de servidor
-serverSocket.bind((server_ip, port))
-serverSocket.listen(1)
-link = True
-while True:
-    # Estabeleça a conexão
-    print('\nServidor está pronto...\n')
-
-    connectionSocket, addr = serverSocket.accept()
-
+def get_local_ip():
     try:
-        request = connectionSocket.recv(1024).decode()
+        host_name = socket.gethostname()
+        local_ip = socket.gethostbyname(host_name)
+        return local_ip
+    except Exception as e:
+        print(f"Erro ao obter o endereço IP local: {str(e)}")
+        return None
+
+
+def parse_request(request):
+    headers, body = request.split('\r\n\r\n', 1)
+    method, path, _ = headers.split('\r\n', 1)[0].split()
+    return method, path, body
+
+
+def send_response(connection_socket, status, content):
+    response = f'\nHTTP/1.1 {status}\n\n'
+    connection_socket.send(response.encode())
+    connection_socket.sendall(content)
+
+
+def handle_client(connection_socket, server_ip):
+    try:
+        request = connection_socket.recv(2048).decode()
         if not request:
-            break
+            return
 
-        # Obter o endereço DNS do cliente
-        client_dns = addr[0]
-
-        print(request)
-        method = request.split()[0]
-        filename = request.split()[1]
+        method, filename, body = parse_request(request)
 
         if method == 'POST':
-            # Pega os dados do corpo do POST
-            user, password = getUserAndPass(request)
-            print('oiii', dataLogin['usuario'],
-                  user, user == dataLogin['usuario'])
+            user, password = parse_post_data(body)
 
-            if user == dataLogin['usuario'] and password == dataLogin['senha']:
-                response = 'HTTP/1.1 302 Found\r\nLocation: /home.html\r\n\r\n'
-                connectionSocket.send(response.encode())
-                # response = f'HTTP/1.1 302 Found\r\nLocation: /home.html\r\n\r\nClient DNS: {client_dns}\r\n'
-                # connectionSocket.send(response.encode())
+            if user == USER_DATA['usuario'] and password == USER_DATA['senha']:
+                client_dns = socket.gethostbyname(server_ip)
+                with open('home.html', 'rb') as f:
+                    output_data = f.read()
+                output_data = output_data.replace(
+                    b'DNS_AQUI', client_dns.encode())
+                send_response(connection_socket, '200 OK', output_data)
             else:
-                # Se as credenciais estiverem incorretas, envie uma mensagem de erro. (Precisa melhorar essa parte)
-                response = "\nHTTP/1.1 404 Not Found\n\n"
-                connectionSocket.send(response.encode())
+                send_404_response(connection_socket)
         else:
-            # Se não for um pedido POST, trate como GET
-            try:
-                with open(filename[1:], 'rb') as f:
-                    outputdata = f.read()
-                connectionSocket.send('\nHTTP/1.1 200 OK \n\n'.encode())
-                connectionSocket.sendall(outputdata)
-            except FileNotFoundError:
-                # Enviar mensagem de resposta para arquivo não encontrado
-                response = "\nHTTP/1.1 404 Not Found\n\n"
-                connectionSocket.send(response.encode())
-        connectionSocket.close()
+            serve_static_file(connection_socket, filename)
 
     except IOError:
-        # Enviar mensagem de resposta para arquivo não encontrado
-        response = "\nHTTP/1.1 404 Not Found\n\n"
-        connectionSocket.send(response.encode())
-        # Fechar socket do cliente
-        serverSocket.close()
+        send_404_response(connection_socket)
 
-serverSocket.close()
-sys.exit()  # Encerre o programa após enviar os dados correspondentes
+    finally:
+        connection_socket.close()
+
+
+def parse_post_data(data):
+    data_dict = {}
+    for field in data.split('&'):
+        key, value = field.split('=')
+        data_dict[key] = value
+    return data_dict.get('usuario', ''), data_dict.get('senha', '')
+
+
+def send_404_response(connection_socket):
+    with open('error404.html', 'rb') as f:
+        output_data = f.read()
+    send_response(connection_socket, '404 Not Found', output_data)
+
+
+def serve_static_file(connection_socket, filename):
+    if filename[1:] == 'home.html':
+        send_404_response(connection_socket)
+        return
+
+    try:
+        with open(filename[1:], 'rb') as f:
+            output_data = f.read()
+        send_response(connection_socket, '200 OK', output_data)
+    except FileNotFoundError:
+        send_404_response(connection_socket)
+
+
+def run_server():
+    local_ip = get_local_ip() or 'localhost'
+    port = 6789
+
+    try:
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind((local_ip, port))
+        server_socket.listen(1)
+
+        print(f"\nExecutando em http://{local_ip}:{port}/login.html")
+
+        while True:
+            print('Servidor está pronto...')
+            connection_socket, addr = server_socket.accept()
+            thread = threading.Thread(
+                target=handle_client, args=(connection_socket, local_ip))
+            thread.start()
+
+    except Exception as e:
+        print(f"Erro: {e}")
+
+    finally:
+        server_socket.close()
+
+
+if __name__ == '__main__':
+    run_server()
