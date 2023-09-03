@@ -23,7 +23,7 @@ server_ip = 'localhost'
 dataLogin = {'usuario': 'admin',
              'senha': '1234'}
 
-print(f"\nExecutando em http://{server_ip}:{port}")
+print(f"\nExecutando em http://{server_ip}:{port}/login.html")
 
 # Prepare um socket de servidor
 serverSocket.bind((server_ip, port))
