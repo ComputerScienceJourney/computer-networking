@@ -1,4 +1,4 @@
-import socket
+from socket import *
 import threading
 
 USER_DATA = {'usuario': 'admin', 'senha': '1234'}
@@ -6,8 +6,8 @@ USER_DATA = {'usuario': 'admin', 'senha': '1234'}
 
 def get_local_ip():
     try:
-        host_name = socket.gethostname()
-        local_ip = socket.gethostbyname(host_name)
+        host_name = gethostname()
+        local_ip = gethostbyname(host_name)
         return local_ip
     except Exception as e:
         print(f"Erro ao obter o endereço IP local: {str(e)}")
@@ -38,7 +38,7 @@ def handle_client(connection_socket, server_ip):
             user, password = parse_post_data(body)
 
             if user == USER_DATA['usuario'] and password == USER_DATA['senha']:
-                client_dns = socket.gethostbyname(server_ip)
+                client_dns = gethostbyname(server_ip)
                 with open('home.html', 'rb') as f:
                     output_data = f.read()
                 output_data = output_data.replace(
@@ -88,7 +88,7 @@ def run_server():
     port = 6789
 
     try:
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.bind((local_ip, port))
         server_socket.listen(1)
 
