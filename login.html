@@ -3,31 +3,39 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="author" content="Kodinger">
+    <link type="image/png" sizes="96x96" rel="icon" href="img/favicon.png">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Laboratório 1</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="css/login.css">
+    <title>Laboratório 1</title>
 </head>
 
 <body class="text-center">
     <form class="form-signin" method="POST" action="/home.html" novalidate="">
-        <img class="mb-4" src="img/astro2.gif" alt="" width="180" height="180">
+
+        <!-- Imagem principal -->
+        <img class="mb-4" src="img/astro_login.gif" alt="" width="180" height="180">
+
+        <!-- Título principal do formulário -->
         <h1 class="h3 mb-3 font-weight-normal">Faça login</h1>
 
+        <!-- Rótulo e campo de entrada para o nome de usuário -->
         <label for="usuario" class="sr-only">Usuário</label>
         <input type="text" id="usuario" name="usuario" class="form-control" placeholder="Usuário" required autofocus>
 
+        <!-- Rótulo e campo de entrada para a senha -->
         <label for="senha" class="sr-only">Senha</label>
         <input type="password" id="senha" name="senha" class="form-control" placeholder="Senha" required data-eye>
 
+        <!-- Botão de envio do formulário -->
         <button class="btn btn-lg btn-primary btn-block" type="submit">Entrar</button>
 
-
-        <!-- Register buttons -->
+        <!-- Botão de Registro -->
         <div class="text-center">
-            <p>Não tem uma conta? <a href="/cadastro.html">Cadastre-se</a></p>
+            <p class="cadastro">Não tem uma conta? <a href="/cadastro.html">Cadastre-se</a></p>
         </div>
+
+        <!-- Rodapé com informações de direitos autorais -->
         <p class="mt-5 mb-3 text-muted">Gabrielly & Marcos &copy; 2023</p>
 
     </form>
