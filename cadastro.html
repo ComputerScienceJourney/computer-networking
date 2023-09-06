@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Kodinger">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Cadastro</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/login.css">
+</head>
+
+<body class="text-center">
+    <form class="form-signin" method="POST" action="/login.html" novalidate="">
+        <img class="mb-4" src="img/astro.gif" alt="" width="180" height="180">
+        <h1 class="h3 mb-3 font-weight-normal">Cadastra-se</h1>
+        <div class="mb-3">
+            <input type="text" class="form-control" name="nome" id="nome" placeholder="Nome" value="" required>
+            <div class="invalid-feedback">
+                Nome é obrigatório.
+            </div>
+        </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" name="sobrenome" id="sobrenome" placeholder="Sobrenome" value="">
+        </div>
+        <div class="mb-3">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">@</span>
+                </div>
+                <input type="text" id="usuario" name="usuario" class="form-control" placeholder="Usuário" required>
+
+                <div class="invalid-feedback" style="width: 100%;">
+                    Usuário é obrigatório.
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div class="input-group">
+                <input type="password" id="password" name="senha" class="form-control" placeholder="Senha" required>
+                <div class="invalid-feedback" style="width: 100%;">
+                    Senha é obrigatório.
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <input type="email" class="form-control" name="email" id="email" placeholder="usuario@example.com">
+            <div class="invalid-feedback">
+                Por favor, use um email válido.
+            </div>
+        </div>
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Cadastrar</button><br>
+
+        <div class="text-center">
+            <p><a href="/login.html">Voltar</a></p>
+        </div>
+
+        <p class="mt-5 mb-3 text-muted">Gabrielly & Marcos &copy; 2023</p>
+
+    </form>
+</body>
+<script src="js/jquery-3.3.1.slim.min.js"></script>
+<script src="js/login.js"></script>
+
+</html>
