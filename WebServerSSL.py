@@ -1,5 +1,5 @@
 import sys
-import ssl
+from ssl import *
 from socket import *
 
 
@@ -26,10 +26,10 @@ def getUserAndPass(request):
     return user, password
 
 
-def send_response(connection_socket, status, content):
+def send_response(ssl_connection, status, content):
     response = f'\nHTTP/1.1 {status}\n\n'
-    connection_socket.send(response.encode())
-    connection_socket.sendall(content)
+    ssl_connection.write(response.encode())
+    ssl_connection.write(content)
 
 
 # Configuração de usuário
@@ -39,18 +39,22 @@ data_login = {'usuario': 'admin', 'senha': '1234'}
 serverSocket = socket(AF_INET, SOCK_STREAM)
 
 # Configuração SSL/TLS
-context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-context.load_cert_chain(certfile="server_cert.pem",
-                        keyfile="server_key.pem")  # senha 1234
+# context = SSLContext(PROTOCOL_TLSv1)
+# context.load_cert_chain(certfile="certificados/mycert2.pem")
 
 # Configuração inicial
-local_ip = get_local_ip()
-server_ip = local_ip if local_ip else 'localhost'
+server_ip = get_local_ip() or 'localhost'
 port = 6789
 
 # Prepare um socket de servidor
 serverSocket.bind((server_ip, port))
+
 serverSocket.listen(1)
+
+context = create_default_context(Purpose.CLIENT_AUTH)
+context.load_cert_chain(certfile="certificados/mycert2.pem")
+context.options |= OP_NO_TLSv1 | OP_NO_TLSv1_1  # optional
+context.set_ciphers('AES256+ECDH:AES256+EDH')
 
 # acesso rápido ao servidor
 print(f"\nExecutando em https://{server_ip}:{port}/login.html")
@@ -59,17 +63,16 @@ while True:
     # Estabeleça a conexão
     print('Servidor está pronto...')
 
+    ssl_connection = None
     connectionSocket, addr = serverSocket.accept()
-
     try:
-        # Adicione um wrap SSL/TLS à conexão
+
         ssl_connection = context.wrap_socket(
             connectionSocket, server_side=True)
-        request = ssl_connection.recv(1024).decode()
+        request = ssl_connection.recv().decode()
+
         if not request:
             continue
-
-        print('\n' + request + '\n')
 
         method = request.split()[0]
         filename = request.split()[1]
@@ -109,12 +112,12 @@ while True:
                     output_data = f.read()
                 send_response(ssl_connection, '404 Not Found', output_data)
 
-        ssl_connection.close()
+    except SSLError as e:
+        print(f'Erro: {e}')
 
-    except IOError:
-        send_response(ssl_connection, '404 Not Found', b'')
-
-    ssl_connection.close()
+    finally:
+        if ssl_connection:
+            ssl_connection.close()
 
 serverSocket.close()
 sys.exit()

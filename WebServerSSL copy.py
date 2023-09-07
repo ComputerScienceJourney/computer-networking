@@ -1,7 +1,9 @@
 from socket import *
+from ssl import *
 import pandas as pd
 from urllib.parse import parse_qsl
 import hashlib
+import threading
 
 
 class webserver:
@@ -16,17 +18,28 @@ class webserver:
         serverSocket.bind((self.ip, self.port))
         serverSocket.listen(5)
 
+        context = create_default_context(Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile="certificados/certificado1234.pem")
+        context.options |= OP_NO_TLSv1 | OP_NO_TLSv1_1
+        context.set_ciphers('AES256+ECDH:AES256+EDH')
+
         # acesso rápido ao servidor
         print(f"\nExecutando em http://{self.ip}:{self.port}/login.html")
 
         while True:
             print('Servidor está pronto...')
             connectionSocket, addr = serverSocket.accept()
-            self.handler(connectionSocket)
+            thread = threading.Thread(
+                target=self.handler, args=(connectionSocket, addr, context))
+            thread.start()
 
-    def handler(self, connectionSocket):
+    def handler(self, connectionSocket, addr, context):
+        ssl_connection = None
+
         try:
-            request = connectionSocket.recv(1024).decode()
+            ssl_connection = context.wrap_socket(
+                connectionSocket, server_side=True)
+            request = ssl_connection.recv().decode()
             if not request:
                 return
 
@@ -97,7 +110,8 @@ class webserver:
             self.send_response(connectionSocket, '404 Not Found', b'')
 
         finally:
-            connectionSocket.close()
+            if ssl_connection:
+                ssl_connection.close()
 
     def auth_user(self, user: str, password: str) -> bool:
         """
