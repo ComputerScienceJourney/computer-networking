@@ -8,7 +8,7 @@ import threading
 
 class webserver:
     def __init__(self, ip, port) -> None:
-        self.ip = ip
+        self.ip = 'localhost'
         self.port = port
         self.USER_INFO = None
         self.DATABASE = pd.read_csv('dados/database.csv')
@@ -18,7 +18,8 @@ class webserver:
         serverSocket.bind((self.ip, self.port))
         serverSocket.listen(5)
 
-        context = create_default_context(Purpose.CLIENT_AUTH)
+        # context = create_default_context(Purpose.CLIENT_AUTH)
+        context = SSLContext(PROTOCOL_TLS_SERVER)
         context.load_cert_chain(certfile="certificados/certificado1234.pem")
         context.options |= OP_NO_TLSv1 | OP_NO_TLSv1_1
         context.set_ciphers('AES256+ECDH:AES256+EDH')
@@ -59,11 +60,11 @@ class webserver:
                         output_data = output_data.replace(
                             b'NOME_USER', self.USER_INFO['nome'].values[0].encode())
                         self.send_response(
-                            connectionSocket, '200 OK', output_data)
+                            ssl_connection, '200 OK', output_data)
 
                     else:
                         output_data = self.load_file('error404.html')
-                        self.send_response(connectionSocket,
+                        self.send_response(ssl_connection,
                                            '404 Not Found', output_data)
                 else:
                     data_user = {
@@ -77,7 +78,7 @@ class webserver:
                     # Registra o novo usuário na base de dados
                     if not self.user_save(data_user):
                         output_data = self.load_file('error404.html')
-                        self.send_response(connectionSocket,
+                        self.send_response(ssl_connection,
                                            '404 Not Found', output_data)
                         return
 
@@ -85,10 +86,10 @@ class webserver:
                     try:
                         output_data = self.load_file(request['Filename'][1:])
                         self.send_response(
-                            connectionSocket, '200 OK', output_data)
+                            ssl_connection, '200 OK', output_data)
                     except FileNotFoundError:
                         output_data = self.load_file('error404.html')
-                        self.send_response(connectionSocket,
+                        self.send_response(ssl_connection,
                                            '404 Not Found', output_data)
 
             else:
@@ -96,18 +97,18 @@ class webserver:
                     try:
                         output_data = self.load_file(request['Filename'][1:])
                         self.send_response(
-                            connectionSocket, '200 OK', output_data)
+                            ssl_connection, '200 OK', output_data)
                     except FileNotFoundError:
                         output_data = self.load_file('error404.html')
-                        self.send_response(connectionSocket,
+                        self.send_response(ssl_connection,
                                            '404 Not Found', output_data)
                 else:
                     output_data = self.load_file('error404.html')
                     self.send_response(
-                        connectionSocket, '404 Not Found', output_data)
+                        ssl_connection, '404 Not Found', output_data)
 
         except IOError:
-            self.send_response(connectionSocket, '404 Not Found', b'')
+            self.send_response(ssl_connection, '404 Not Found', b'')
 
         finally:
             if ssl_connection:
@@ -157,7 +158,7 @@ class webserver:
         else:
             return False
 
-    def send_response(self, connection_socket: socket, status: str, content: bytes) -> None:
+    def send_response(self, ssl_connection: SSLSocket, status: str, content: bytes) -> None:
         """
         Envia uma resposta HTTP para um socket de conexão com um status e conteúdo fornecidos.
 
@@ -170,8 +171,8 @@ class webserver:
             None
         """
         response = f'\nHTTP/1.1 {status}\n\n'
-        connection_socket.send(response.encode())
-        connection_socket.sendall(content)
+        ssl_connection.write(response.encode())
+        ssl_connection.write(content)
 
     def load_file(self, filename: str) -> bytes:
         """

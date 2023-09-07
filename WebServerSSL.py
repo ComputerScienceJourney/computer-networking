@@ -43,7 +43,8 @@ serverSocket = socket(AF_INET, SOCK_STREAM)
 # context.load_cert_chain(certfile="certificados/mycert2.pem")
 
 # Configuração inicial
-server_ip = get_local_ip() or 'localhost'
+# server_ip = get_local_ip() or 'localhost'
+server_ip = 'localhost'
 port = 6789
 
 # Prepare um socket de servidor
@@ -52,7 +53,7 @@ serverSocket.bind((server_ip, port))
 serverSocket.listen(1)
 
 context = create_default_context(Purpose.CLIENT_AUTH)
-context.load_cert_chain(certfile="certificados/mycert2.pem")
+context.load_cert_chain(certfile="certificados/mycert.pem")
 context.options |= OP_NO_TLSv1 | OP_NO_TLSv1_1  # optional
 context.set_ciphers('AES256+ECDH:AES256+EDH')
 
