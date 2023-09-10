@@ -12,7 +12,7 @@ class webserver:
         self.USER_INFO = None
         self.DATABASE = pd.read_csv('dados/database.csv')
 
-    def run(self):
+    def run(self) -> None:
         serverSocket = socket(AF_INET, SOCK_STREAM)
         serverSocket.bind((self.ip, self.port))
         serverSocket.listen(5)
@@ -27,7 +27,7 @@ class webserver:
                 target=self.handler, args=(connectionSocket, addr))
             thread.start()
 
-    def handler(self, connectionSocket, addr):
+    def handler(self, connectionSocket, addr) -> None:
         try:
             request = connectionSocket.recv(1024).decode()
             if not request:
