@@ -10,9 +10,9 @@
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="assets/favicon.png" />
     <!-- Bootstrap icons-->
-    <link href="css/font-awesome.css" rel="stylesheet" />
-    <link href="css/font-awesome.min.css" rel="stylesheet" />
-    <link href="css/bootstrap.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="css/styles.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -56,9 +56,11 @@
         <div class="container px-5 my-5">
             <div class="row gx-5">
                 <div class="col-lg-4 mb-5 mb-lg-0">
-                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3">UDP</div>
+                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                            class="bi bi-hand-thumbs-down-fill"></i>
+                    </div>
                     <h2 class="h4 fw-bolder">User Datagram Protocol</h2>
-                    <p>O User Datagram Protocol é um protocolo de Internet mais simples e sem conexão, no qual os
+                    <p>O User Datagram Protocol (UDP) é um protocolo de Internet mais simples e sem conexão, no qual os
                         serviços de verificação e recuperação de erros não são necessários. Com o UDP, não há sobrecarga
                         para abrir, manter ou encerrar uma conexão — os dados são continuamente enviados para o
                         destinatário, quer ele os receba ou não.</p>
@@ -68,9 +70,12 @@
                     </a>
                 </div>
                 <div class="col-lg-4 mb-5 mb-lg-0">
-                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3">TCP</div>
+                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                            class="bi bi-hand-thumbs-up-fill"></i>
+
+                    </div>
                     <h2 class="h4 fw-bolder">Transmission Control Protocol</h2>
-                    <p>O protocolo de controle de transmissão é orientado à conexão, o que significa que, uma vez
+                    <p>O protocolo de controle de transmissão (TCP) é orientado à conexão, o que significa que, uma vez
                         que a conexão foi estabelecida, os dados podem ser transmitidos em duas direções. Ele tem
                         sistemas integrados para verificar se há erros e garantir que os dados sejam entregues na ordem
                         em que foram enviados, tornando-o o protocolo perfeito para a transferência de informações como
@@ -81,7 +86,9 @@
                     </a>
                 </div>
                 <div class="col-lg-4">
-                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3">TLS</div>
+                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                            class="bi bi-file-earmark-lock2-fill"></i>
+                    </div>
                     <h2 class="h4 fw-bolder">Transport Layer Security</h2>
                     <p>A base do funcionamento do TLS como um protocolo de segurança é sua capacidade de codificar
                         mensagens e informações. Assim, quando um usuário navega por um site e informa dados como
@@ -103,7 +110,7 @@
             <p class="m-0 text-center text-white">Gabrielly & Marcos &copy; 2023</p>
         </div>
     </footer>
-    <!-- <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script> -->
+    <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
     <script src="js/jquery-3.3.1.slim.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
 </body>
