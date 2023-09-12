@@ -37,6 +37,7 @@ class webserver:
 
             if request['Method'] == 'POST':
 
+                # É autenticação de usuário?
                 if request['Referer'].split('/')[-1] == 'login.html':
                     user_session = self.auth_user(
                         request['usuario'], request['senha'])
@@ -55,6 +56,8 @@ class webserver:
                         output_data = self.load_file('error404.html')
                         self.send_response(connectionSocket,
                                            '404 Not Found', output_data)
+
+                # Senão, então é cadastro
                 else:
                     data_user = {
                         'nome': request.get('nome', ''),
