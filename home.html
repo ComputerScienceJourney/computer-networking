@@ -40,8 +40,8 @@
                             do que pedras nos seus rins!</p>
                         <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
                             <a class="btn btn-primary btn-lg px-4 me-sm-3" href="#features">Get Started</a>
-                            <button type="button" class="btn btn-outline-light btn-lg px-4" data-toggle="modal"
-                                data-target="#ExemploModalCentralizado">
+                            <button type="button" class="btn btn-outline-light btn-lg px-4" data-bs-toggle="modal"
+                                data-bs-target="#ExemploModalCentralizado">
                                 Ver IP DNS
                             </button>
                         </div>
@@ -102,24 +102,25 @@
     </footer>
     <script src="js/jquery-3.3.1.slim.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
-</body>
 
-<!-- Modal-->
-<div class="modal fade" id="ExemploModalCentralizado" tabindex="-1" role="dialog"
-    aria-labelledby="TituloModalCentralizado" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="TituloModalCentralizado">DNS</h5>
-            </div>
-            <div class="modal-body">
-                Seu IP DNS é: <b>DNS_AQUI</b>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-dark" data-dismiss="modal">Fechar</button>
+    <!-- Modal-->
+    <div class="modal fade" id="ExemploModalCentralizado" tabindex="-1" role="dialog"
+        aria-labelledby="TituloModalCentralizado" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="TituloModalCentralizado">DNS</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                </div>
+                <div class="modal-body">
+                    Seu IP DNS é: <b>DNS_AQUI</b>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Fechar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 </html>
