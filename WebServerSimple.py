@@ -44,7 +44,7 @@ class webserver:
                         output_data = output_data.replace(
                             b'DNS_AQUI', client_dns.encode())
                         output_data = output_data.replace(
-                            b'NOME_USER', self.USER_INFO['nome'].values[0].encode())
+                            b'NOME_USER', self.USER_INFO['nome'].values[0].title().encode())
                         self.send_response(
                             connectionSocket, '200 OK', output_data)
 
