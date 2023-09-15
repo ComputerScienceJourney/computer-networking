@@ -35,15 +35,10 @@ def send_response(ssl_connection, status, content):
 # Configuração de usuário
 data_login = {'usuario': 'admin', 'senha': '1234'}
 
-# (AF_INET é usado para protolocos IPv4) & (SOCK_STREAM é usado para TCP)
 serverSocket = socket(AF_INET, SOCK_STREAM)
 
-# Configuração SSL/TLS
-# context = SSLContext(PROTOCOL_TLSv1)
-# context.load_cert_chain(certfile="certificados/mycert2.pem")
 
 # Configuração inicial
-# server_ip = get_local_ip() or 'localhost'
 server_ip = 'localhost'
 port = 6789
 
@@ -119,6 +114,3 @@ while True:
     finally:
         if ssl_connection:
             ssl_connection.close()
-
-serverSocket.close()
-sys.exit()
