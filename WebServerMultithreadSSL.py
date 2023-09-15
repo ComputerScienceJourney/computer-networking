@@ -58,7 +58,7 @@ class webserver:
                         output_data = output_data.replace(
                             b'DNS_AQUI', client_dns.encode())
                         output_data = output_data.replace(
-                            b'NOME_USER', self.USER_INFO['nome'].values[0].title().encode())
+                            b'USER_NAME', self.USER_INFO['nome'].values[0].title().encode())
                         self.send_response(
                             ssl_connection, '200 OK', output_data)
 
