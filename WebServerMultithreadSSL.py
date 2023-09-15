@@ -8,7 +8,7 @@ import threading
 
 class webserver:
     def __init__(self, ip, port) -> None:
-        self.ip = 'localhost'
+        self.ip = ip
         self.port = port
         self.USER_INFO = None
         self.DATABASE = pd.read_csv('dados/database.csv')
