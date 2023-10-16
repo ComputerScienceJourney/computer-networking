@@ -1,4 +1,6 @@
 ##
+## SAMPLE SOLUTION --- ALTERNATING-BIT PROTOCOL --- MARCH 18
+##
 ## Python version of:
 ##
 ## ****************************************************************************
@@ -41,6 +43,8 @@ from enum import Enum, auto
 import random
 import sys
 import time
+
+from binascii import crc32
 
 ###############################################################################
 
@@ -106,38 +110,177 @@ class EntityA:
     # zero and seqnum_limit-1, inclusive.  E.g., if seqnum_limit is 16, then
     # all seqnums must be in the range 0-15.
     def __init__(self, seqnum_limit):
-        pass
+        self.OUTPUT = 0
+        self.INPUT  = 1
+        self.TIMER = 2
+
+        # How long to wait for ack?
+        self.WAIT_TIME = 10.0
+
+        # Buffer
+        self.buffer = []
+        # self.window_size = 10 = seqnum_limit
+        self.base = 0
+        self.next_seq_num = 0
+        self.seqnum_limit = seqnum_limit
+
+        # State
+        # self.layer5_msgs = []
+        # self.bit = 0
+        self.sent_pkt = None
+        self.handle_event = self.handle_event_wait_for_call
 
     # Called from layer 5, passed the data to be sent to other side.
     # The argument `message` is a Msg containing the data to be sent.
     def output(self, message):
-        pass
+        print("\n")
+        print(f"[HOST A] RECEBE DA APLICAÇÃO {message}")
+
+        self.buffer.append(message) # Adiciona mensagem no buffer
+        # self.layer5_msgs.append(message)
+        self.handle_event(self.OUTPUT)
 
     # Called from layer 3, when a packet arrives for layer 4 at EntityA.
     # The argument `packet` is a Pkt containing the newly arrived packet.
     def input(self, packet):
-        pass
+        print(f"[HOST A] ===== RECEBE ACK {packet}")
+        self.handle_event(self.INPUT, packet)
 
     # Called when A's timer goes off.
     def timer_interrupt(self):
+        self.handle_event(self.TIMER)
         pass
+
+    #####
+
+    def handle_event_wait_for_call(self, e, arg=None):
+        if e==self.OUTPUT:
+            # if not self.buffer:
+            # if self.next_seq_num >= len(self.buffer):
+            if self.next_seq_num >= self.seqnum_limit:
+                self.base = self.next_seq_num = 0
+                self.buffer = []
+                return
+            try:
+                self.buffer[self.base]
+            except IndexError:
+                return
+            m = self.buffer[self.base]
+            p = Pkt(self.next_seq_num, self.next_seq_num, 0, m.data)
+            # p = Pkt(self.bit, 0, 0, m.data)
+            if self.next_seq_num >= self.seqnum_limit: 
+                self.next_seq_num = 0
+            else:
+                self.next_seq_num += 1             
+            pkt_insert_checksum(p)
+            to_layer3(self, p)
+            self.sent_pkt = p
+            start_timer(self, self.WAIT_TIME)
+            self.handle_event = self.handle_event_wait_for_ack
+
+        elif e==self.INPUT:
+            pass
+
+        elif e==self.TIMER:
+            if TRACE>0:
+                print('EntityA: ignoring unexpected timeout.')
+
+        else:
+            self.unknown_event(e)
+
+    def handle_event_wait_for_ack(self, e, arg=None):
+        if e==self.OUTPUT:
+            pass
+
+        elif e==self.INPUT:
+            p = arg
+            # if (pkt_is_corrupt(p)
+            #     or p.acknum != self.bit):
+            if (pkt_is_corrupt(p)
+                or p.acknum != self.base):
+                print(f"[HOST A] ===== CORROMPIDO ===== {p.acknum} != {self.base}")
+                return
+            stop_timer(self)
+            
+            # self.bit = 1 - self.bit
+            # Anda com a janela
+            # self.buffer.pop(0)
+            self.base += 1
+
+            self.handle_event = self.handle_event_wait_for_call
+            self.handle_event(self.OUTPUT)
+
+        elif e==self.TIMER:
+            print(f"[HOST A] Timer {self.TIMER}")
+            to_layer3(self, self.sent_pkt)
+            start_timer(self, self.WAIT_TIME)
+
+        else:
+            print("Não reconhecido")
+            self.unknown_event(e)
+
+    #####
+
+    def self_unknown_event(self, e):
+        print(f'EntityA: ignoring unknown event {e}.')
+
+#####
 
 class EntityB:
     # The following method will be called once (only) before any other
     # EntityB methods are called.  You can use it to do any initialization.
     #
-    # See comment above `EntityA.__init__` for the meaning of seqnum_limit.
+    # See comment for the meaning of seqnum_limit.
     def __init__(self, seqnum_limit):
+        self.expected_next_seq_num = 0
+        self.seqnum_limit = seqnum_limit
         pass
 
     # Called from layer 3, when a packet arrives for layer 4 at EntityB.
     # The argument `packet` is a Pkt containing the newly arrived packet.
     def input(self, packet):
-        pass
+        print(f"[HOST B]===== INPUT ===== {packet}")
+        # print(f'B received: {packet}')
+        if (packet.seqnum != self.expected_next_seq_num
+            or pkt_is_corrupt(packet)):
+            print(f"[HOST B] ===== CORROMPIDO ===== {pkt_is_corrupt(packet)}")
+            p = Pkt(self.expected_next_seq_num, self.expected_next_seq_num, 0, packet.payload)
+            pkt_insert_checksum(p)
+            to_layer3(self, p)
+        else:
+            print(f"[HOST B] ===== ENTREGA MENSAGEM ===== {packet}")
+            to_layer5(self, Msg(packet.payload))
+            # Ack.
+            p = Pkt(self.expected_next_seq_num, self.expected_next_seq_num, 0, packet.payload)
+            pkt_insert_checksum(p)
+            to_layer3(self, p)
+            #
+            # self.expected_next_seq_num = 1 - self.expected_next_seq_num
+
+            if self.expected_next_seq_num + 1 >= self.seqnum_limit: 
+                self.expected_next_seq_num = 0
+            else:
+                self.expected_next_seq_num += 1
 
     # Called when B's timer goes off.
     def timer_interrupt(self):
+        print("HOST B TIMER")
         pass
+
+#####
+
+def pkt_compute_checksum(packet):
+    crc = 0
+    crc = crc32(packet.seqnum.to_bytes(4, byteorder='big'), crc)
+    crc = crc32(packet.acknum.to_bytes(4, byteorder='big'), crc)
+    crc = crc32(packet.payload, crc)
+    return crc
+
+def pkt_insert_checksum(packet):
+    packet.checksum = pkt_compute_checksum(packet)
+
+def pkt_is_corrupt(packet):
+    return pkt_compute_checksum(packet) != packet.checksum
 
 ###############################################################################
 
@@ -420,6 +563,7 @@ class Simulator:
             print('WARNING: unable to stop timer; it was not running.')
 
     def to_layer3(self, entity, packet):
+        print(f"[HOST {type(entity).__name__}] ===== ENVIO PARA REDE ===== {packet}")
         if not self._valid_entity(entity, 'to_layer3'):
             return
         if not self._valid_packet(packet, 'to_layer3'):
@@ -560,7 +704,7 @@ def main(options, cb_A=None, cb_B=None):
 if __name__ == '__main__':
     desc = 'Run a simulation of a reliable data transport protocol.'
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-n', type=int, default=10,
+    parser.add_argument('-n', type=int, default=5,
                         dest='num_msgs',
                         help=('number of messages to simulate'
                               ' [int, default: %(default)s]'))
@@ -568,7 +712,7 @@ if __name__ == '__main__':
                         dest='interarrival_time',
                         help=('average time between messages'
                               ' [float, default: %(default)s]'))
-    parser.add_argument('-z', type=int, default=16,
+    parser.add_argument('-z', type=int, default=2,
                         dest='seqnum_limit',
                         help=('seqnum limit for data transport protocol; '
                               'all packet seqnums must be >=0 and <limit'
@@ -582,10 +726,10 @@ if __name__ == '__main__':
                         help=('packet corruption probability'
                               ' [float, default: %(default)s]'))
     parser.add_argument('-s', type=int,
-                        dest='random_seed',
+                        dest='random_seed',default=1696178931336185674,
                         help=('seed for random number generator'
                               ' [int, default: %(default)s]'))
-    parser.add_argument('-v', type=int, default=0,
+    parser.add_argument('-v', type=int, default=2,
                         dest='trace',
                         help=('level of event tracing'
                               ' [int, default: %(default)s]'))
