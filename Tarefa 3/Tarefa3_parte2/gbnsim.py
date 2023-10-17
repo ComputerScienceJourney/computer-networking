@@ -136,7 +136,6 @@ class EntityA:
             print("\n")
             print(f"[HOST A] RECEBE DA APLICAÇÃO {message}")
 
-        # self.buffer.append(message) # Adiciona mensagem no buffer
         self.message = message
         self.layer5_msgs.append(message)
         self.handle_event(self.OUTPUT)
