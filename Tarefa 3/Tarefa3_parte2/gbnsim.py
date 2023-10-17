@@ -114,20 +114,21 @@ class EntityA:
         self.trace = trace
         self.OUTPUT = 0
         self.INPUT  = 1
-        self.TIMER = 2
+        self.TIMER = 2 
 
         # How long to wait for ack?
-        self.WAIT_TIME = 10.0
+        self.WAIT_TIME = 42 # 0.0 + 4.0 * seqnum_limit / 2
 
         # Buffer
         self.buffer = []
+        # self.message = None
         # self.window_size = 10 = seqnum_limit
         self.base = 0
         self.next_seq_num = 0
         self.seqnum_limit = seqnum_limit
 
         # State
-        # self.layer5_msgs = []
+        self.layer5_msgs = []
         # self.bit = 0
         # self.sent_pkt = None
         self.handle_event = self.handle_event_wait_for_call
@@ -139,8 +140,9 @@ class EntityA:
             print("\n")
             print(f"[HOST A] RECEBE DA APLICAÇÃO {message}")
 
-        self.buffer.append(message) # Adiciona mensagem no buffer
-        # self.layer5_msgs.append(message)
+        # self.buffer.append(message) # Adiciona mensagem no buffer
+        self.message = message
+        self.layer5_msgs.append(message)
         self.handle_event(self.OUTPUT)
 
     # Called from layer 3, when a packet arrives for layer 4 at EntityA.
@@ -159,7 +161,8 @@ class EntityA:
 
     def handle_event_wait_for_call(self, e, arg=None):
         if e==self.OUTPUT:
-            # if not self.buffer:
+            if not self.layer5_msgs:
+                return
             # if self.next_seq_num >= len(self.buffer):
             if self.next_seq_num >= self.seqnum_limit:
                 self.base = self.next_seq_num = 0
@@ -169,11 +172,13 @@ class EntityA:
             #     self.buffer[self.base]
             # except IndexError:
             #     return
-            if self.base >= len(self.buffer):
-                return
-            m = self.buffer[self.base]
+            m = self.layer5_msgs.pop(0)
             p = Pkt(self.next_seq_num, self.next_seq_num, 0, m.data)
+            self.buffer.append(p) # Adiciona pacote no buffer
+            # if self.base >= len(self.buffer):
+            #     return
             # p = Pkt(self.bit, 0, 0, m.data)
+            
             if self.next_seq_num >= self.seqnum_limit: 
                 self.next_seq_num = 0
             else:
@@ -204,8 +209,8 @@ class EntityA:
             #     or p.acknum != self.bit):
             if (pkt_is_corrupt(p)
                 or p.acknum != self.base):
-                if self.trace>0:
-                    print(f"[HOST A] ===== CORROMPIDO ===== {p.acknum} != {self.base}")
+                # if self.trace>0:
+                    # print(f"[HOST A] ===== CORROMPIDO ===== {p.acknum} != {self.base}")
                 return
             stop_timer(self)
             
@@ -222,9 +227,9 @@ class EntityA:
                 print(f"[HOST A] Timer {self.TIMER}")
             # to_layer3(self, self.sent_pkt)
             for i in range(self.base, self.next_seq_num):
-                m = self.buffer[i]
-                p = Pkt(i, i, 0, m.data)
-                to_layer3(self, p)
+                # m = self.buffer[i]
+                # p = Pkt(i, i, 0, m.data)
+                to_layer3(self, self.buffer[i])
             start_timer(self, self.WAIT_TIME)
 
         else:
@@ -254,13 +259,11 @@ class EntityB:
     # Called from layer 3, when a packet arrives for layer 4 at EntityB.
     # The argument `packet` is a Pkt containing the newly arrived packet.
     def input(self, packet):
-        if self.trace>0:
-            print(f"[HOST B]===== INPUT ===== {packet}")
         # print(f'B received: {packet}')
         if (packet.seqnum != self.expected_next_seq_num
             or pkt_is_corrupt(packet)):
-            if self.trace>0:
-                print(f"[HOST B] ===== CORROMPIDO ===== {pkt_is_corrupt(packet)}")
+            # if self.trace>0:
+                # print(f"[HOST B] ===== CORROMPIDO ===== {pkt_is_corrupt(packet)}")
             p = Pkt(self.last_seq_num_received, self.last_seq_num_received, 0, packet.payload)
             pkt_insert_checksum(p)
             to_layer3(self, p)
@@ -724,7 +727,7 @@ def main(options, cb_A=None, cb_B=None):
 if __name__ == '__main__':
     desc = 'Run a simulation of a reliable data transport protocol.'
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-n', type=int, default=5,
+    parser.add_argument('-n', type=int, default=10,
                         dest='num_msgs',
                         help=('number of messages to simulate'
                               ' [int, default: %(default)s]'))
@@ -732,12 +735,12 @@ if __name__ == '__main__':
                         dest='interarrival_time',
                         help=('average time between messages'
                               ' [float, default: %(default)s]'))
-    parser.add_argument('-z', type=int, default=5,
+    parser.add_argument('-z', type=int, default=16,
                         dest='seqnum_limit',
                         help=('seqnum limit for data transport protocol; '
                               'all packet seqnums must be >=0 and <limit'
                               ' [int, default: %(default)s]'))
-    parser.add_argument('-l', type=float, default=0.1,
+    parser.add_argument('-l', type=float, default=0.0,
                         dest='loss_prob',
                         help=('packet loss probability'
                               ' [float, default: %(default)s]'))
@@ -746,7 +749,7 @@ if __name__ == '__main__':
                         help=('packet corruption probability'
                               ' [float, default: %(default)s]'))
     parser.add_argument('-s', type=int,
-                        dest='random_seed',default=1696201796773060489,
+                        dest='random_seed',
                         help=('seed for random number generator'
                               ' [int, default: %(default)s]'))
     parser.add_argument('-v', type=int, default=2,
