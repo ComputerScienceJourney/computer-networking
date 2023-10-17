@@ -121,16 +121,12 @@ class EntityA:
 
         # Buffer
         self.buffer = []
-        # self.message = None
-        # self.window_size = 10 = seqnum_limit
         self.base = 0
         self.next_seq_num = 0
-        self.seqnum_limit = seqnum_limit
+        self.window_size = seqnum_limit
 
         # State
         self.layer5_msgs = []
-        # self.bit = 0
-        # self.sent_pkt = None
         self.handle_event = self.handle_event_wait_for_call
 
     # Called from layer 5, passed the data to be sent to other side.
@@ -163,29 +159,21 @@ class EntityA:
         if e==self.OUTPUT:
             if not self.layer5_msgs:
                 return
-            # if self.next_seq_num >= len(self.buffer):
-            if self.next_seq_num >= self.seqnum_limit:
+            if self.next_seq_num >= self.window_size:
                 self.base = self.next_seq_num = 0
                 self.buffer = []
                 return
-            # try:
-            #     self.buffer[self.base]
-            # except IndexError:
-            #     return
+
             m = self.layer5_msgs.pop(0)
             p = Pkt(self.next_seq_num, self.next_seq_num, 0, m.data)
             self.buffer.append(p) # Adiciona pacote no buffer
-            # if self.base >= len(self.buffer):
-            #     return
-            # p = Pkt(self.bit, 0, 0, m.data)
             
-            if self.next_seq_num >= self.seqnum_limit: 
+            if self.next_seq_num >= self.window_size: 
                 self.next_seq_num = 0
             else:
                 self.next_seq_num += 1             
             pkt_insert_checksum(p)
             to_layer3(self, p)
-            # self.sent_pkt = p
             start_timer(self, self.WAIT_TIME)
             self.handle_event = self.handle_event_wait_for_ack
 
@@ -205,18 +193,14 @@ class EntityA:
 
         elif e==self.INPUT:
             p = arg
-            # if (pkt_is_corrupt(p)
-            #     or p.acknum != self.bit):
             if (pkt_is_corrupt(p)
                 or p.acknum != self.base):
-                # if self.trace>0:
-                    # print(f"[HOST A] ===== CORROMPIDO ===== {p.acknum} != {self.base}")
+                if self.trace>0:
+                    print(f"[HOST A] ===== CORROMPIDO ===== {p.acknum} != {self.base}")
                 return
             stop_timer(self)
             
-            # self.bit = 1 - self.bit
             # Anda com a janela
-            # self.buffer.pop(0)
             self.base += 1
 
             self.handle_event = self.handle_event_wait_for_call
@@ -225,10 +209,7 @@ class EntityA:
         elif e==self.TIMER:
             if self.trace>0:
                 print(f"[HOST A] Timer {self.TIMER}")
-            # to_layer3(self, self.sent_pkt)
             for i in range(self.base, self.next_seq_num):
-                # m = self.buffer[i]
-                # p = Pkt(i, i, 0, m.data)
                 to_layer3(self, self.buffer[i])
             start_timer(self, self.WAIT_TIME)
 
@@ -251,7 +232,7 @@ class EntityB:
     def __init__(self, seqnum_limit, trace):
         self.trace = trace
         self.expected_next_seq_num = 0
-        self.seqnum_limit = seqnum_limit
+        self.window_size = seqnum_limit
 
         self.last_seq_num_received = 0
         pass
@@ -259,11 +240,10 @@ class EntityB:
     # Called from layer 3, when a packet arrives for layer 4 at EntityB.
     # The argument `packet` is a Pkt containing the newly arrived packet.
     def input(self, packet):
-        # print(f'B received: {packet}')
         if (packet.seqnum != self.expected_next_seq_num
             or pkt_is_corrupt(packet)):
-            # if self.trace>0:
-                # print(f"[HOST B] ===== CORROMPIDO ===== {pkt_is_corrupt(packet)}")
+            if self.trace>0:
+                print(f"[HOST B] ===== CORROMPIDO ===== {pkt_is_corrupt(packet)}")
             p = Pkt(self.last_seq_num_received, self.last_seq_num_received, 0, packet.payload)
             pkt_insert_checksum(p)
             to_layer3(self, p)
@@ -279,7 +259,7 @@ class EntityB:
             # self.expected_next_seq_num = 1 - self.expected_next_seq_num
 
             self.last_seq_num_received = self.expected_next_seq_num
-            if self.expected_next_seq_num + 1 >= self.seqnum_limit: 
+            if self.expected_next_seq_num + 1 >= self.window_size: 
                 self.expected_next_seq_num = 0
             else:
                 self.expected_next_seq_num += 1
@@ -380,7 +360,7 @@ class Simulator:
         self.interarrival_time    = options.interarrival_time
         self.loss_prob            = options.loss_prob
         self.corrupt_prob         = options.corrupt_prob
-        self.seqnum_limit         = options.seqnum_limit
+        self.window_size         = options.seqnum_limit
         self.n_to_layer3_A        = 0
         self.n_to_layer3_B        = 0
         self.n_lost               = 0
@@ -394,18 +374,18 @@ class Simulator:
             self.random_seed      = options.random_seed
         random.seed(self.random_seed)
 
-        if self.seqnum_limit < 2:
-            self.seqnum_limit_n_bits = 0
+        if self.window_size < 2:
+            self.window_size_n_bits = 0
         else:
             # How many bits to represent integers in [0, seqnum_limit-1]?
-            self.seqnum_limit_n_bits = (self.seqnum_limit-1).bit_length()
+            self.window_size_n_bits = (self.window_size-1).bit_length()
 
         self.trace                = options.trace
         self.to_layer5_callback_A = cbA
         self.to_layer5_callback_B = cbB
 
-        self.entity_A             = EntityA(self.seqnum_limit, self.trace)
-        self.entity_B             = EntityB(self.seqnum_limit, self.trace)
+        self.entity_A             = EntityA(self.window_size, self.trace)
+        self.entity_B             = EntityB(self.window_size, self.trace)
         self.event_list           = []
 
     def get_stats(self):
@@ -415,7 +395,7 @@ class Simulator:
                  'interarrival_time' : self.interarrival_time,
                  'loss_prob'         : self.loss_prob,
                  'corrupt_prob'      : self.corrupt_prob,
-                 'seqnum_limit'      : self.seqnum_limit,
+                 'seqnum_limit'      : self.window_size,
                  'random_seed'       : self.random_seed,
                  'n_to_layer3_A'     : self.n_to_layer3_A,
                  'n_to_layer3_B'     : self.n_to_layer3_B,
@@ -523,21 +503,21 @@ class Simulator:
     def _valid_packet(self, p, method_name):
         if (type(p) is Pkt
             and type(p.seqnum) is int
-            and 0 <= p.seqnum < self.seqnum_limit
+            and 0 <= p.seqnum < self.window_size
             and type(p.acknum) is int
-            and 0 <= p.acknum < self.seqnum_limit
+            and 0 <= p.acknum < self.window_size
             and type(p.checksum) is int
             and type(p.payload) is bytes
             and len(p.payload) == Msg.MSG_SIZE):
             return True
         # Issue special warnings for invalid seqnums and acknums.
         if (type(p.seqnum) is int
-            and not (0 <= p.seqnum < self.seqnum_limit)):
+            and not (0 <= p.seqnum < self.window_size)):
             print(f'''WARNING: seqnum in call to `{method_name}` is invalid!
   Invalid packet: {p}
   Call ignored.''')
         elif (type(p.acknum) is int
-              and not (0 <= p.acknum < self.seqnum_limit)):
+              and not (0 <= p.acknum < self.window_size)):
             print(f'''WARNING: acknum in call to `{method_name}` is invalid!
   Invalid packet: {p}
   Call ignored.''')
@@ -616,19 +596,19 @@ class Simulator:
             self.n_corrupt += 1
             x = random.random()
             if (x < 0.75
-                or self.seqnum_limit_n_bits == 0):
+                or self.window_size_n_bits == 0):
                 payload = b'Z' + payload[1:]
             elif x < 0.875:
                 # Flip a random bit in the seqnum.
                 # The result might be greater than seqnum_limit if seqnum_limit
                 # is not a power of two.  This is OK.
                 # Recall that randrange(x) returns an int in [0, x).
-                seqnum ^= 2**random.randrange(self.seqnum_limit_n_bits)
+                seqnum ^= 2**random.randrange(self.window_size_n_bits)
                 # Kurose's simulator simply did:
                 # seqnum = 999999
             else:
                 # Flip a random bit in the acknum.
-                acknum ^= 2**random.randrange(self.seqnum_limit_n_bits)
+                acknum ^= 2**random.randrange(self.window_size_n_bits)
                 # Kurose's simulator simply did:
                 # acknum = 999999
             if self.trace>0:
